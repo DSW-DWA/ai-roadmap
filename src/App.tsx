@@ -23,7 +23,7 @@ export default function App() {
       </AppBar>
 
       <Toolbar />
-      <Container sx={{ mt: 2, mb: 4 }}>
+      <Container maxWidth={false} sx={{ mt: 2, mb: 4}}>
         <Routes>
           <Route path="/" element={<UploadPage />} />
           <Route path="/upload" element={<UploadPage />} />
