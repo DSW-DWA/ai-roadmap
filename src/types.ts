@@ -30,3 +30,16 @@ export interface RewriteRequest {
   roadmap: Roadmap;
   prompt: string;
 }
+
+// New types for /roadmap/from-files response
+export interface Concept {
+  title: string;
+  description: string | null;
+  related: string[] | null;
+  source: string | null;
+  consist_of: Concept[] | null;
+}
+
+export interface KnowledgeGraph {
+  concepts: Concept[];
+}

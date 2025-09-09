@@ -17,7 +17,7 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const { setRoadmap } = useRoadmap();
+  const { setGraph } = useRoadmap();
   const nav = useNavigate();
 
   function addFiles(list: FileList | null) {
@@ -43,8 +43,8 @@ export default function UploadPage() {
     if (err) { alert(err); return; }
     setLoading(true);
     try {
-      const roadmap = await uploadFiles(files);
-      setRoadmap(roadmap);
+      const graph = await uploadFiles(files);
+      setGraph(graph);
       nav('/roadmap');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -86,7 +86,7 @@ export default function UploadPage() {
           {loading && <LinearProgress />}
 
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" onClick={handleSubmit} disabled={loading}>Сгенерировать роадмап</Button>
+            <Button variant="contained" onClick={handleSubmit} disabled={loading}>Сгенерировать граф знаний</Button>
           </Stack>
         </Stack>
       </CardContent>

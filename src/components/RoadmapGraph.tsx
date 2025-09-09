@@ -6,11 +6,11 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
-import type { Roadmap, Milestone } from '../types.ts';
+import type { KnowledgeGraph, Concept } from '../types.ts';
 
 type Props = {
-  roadmap: Roadmap;
-  onSelect?: (m: Milestone | null) => void;
+  graph: KnowledgeGraph;
+  onSelect?: (c: Concept | null) => void;
   direction?: 'LR' | 'TB';
 };
 
@@ -37,34 +37,51 @@ function layout(nodes: Node[], edges: Edge[], direction: 'LR'|'TB' = 'LR') {
   return { nodes: laidNodes, edges };
 }
 
-export default function RoadmapGraph({ roadmap, onSelect, direction = 'LR' }: Props) {
-  const { nodes: initNodes, edges: initEdges } = useMemo(() => {
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
+function buildGraph(graph: KnowledgeGraph) {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
 
-    // root
-    nodes.push({
-      id: 'root',
-      data: { label: roadmap.title },
-      position: { x: 0, y: 0 },
-      type: 'input',
-      style: { width: nodeWidth, height: nodeHeight }
-    });
+  const idFor = (title: string) => `c-${title}`;
 
-    // milestones
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    roadmap.milestones.forEach((m) => {
-      nodes.push({
-        id: m.id,
-        data: { label: `${m.title}  (~${m.estimated_hours} ч)`, milestone: m },
-        position: { x: 0, y: 0 },
-        style: { width: nodeWidth, height: nodeHeight }
-      });
-      edges.push({ id: `e-root-${m.id}`, source: 'root', target: m.id, animated: false });
-    });
+  function addConceptTree(concepts: Concept[], parentId?: string) {
+    for (const c of concepts) {
+      const id = idFor(c.title);
+      if (!nodes.find(n => n.id === id)) {
+        nodes.push({
+          id,
+          data: { label: c.title, concept: c },
+          position: { x: 0, y: 0 },
+          style: { width: nodeWidth, height: nodeHeight }
+        });
+      }
+      if (parentId) {
+        const eid = `e-${parentId}-${id}`;
+        if (!edges.find(e => e.id === eid)) {
+          edges.push({ id: eid, source: parentId, target: id, animated: false });
+        }
+      }
+      if (c.consist_of?.length) addConceptTree(c.consist_of, id);
+      if (c.related?.length) {
+        for (const r of c.related) {
+          const rid = idFor(r);
+          if (!nodes.find(n => n.id === rid)) {
+            nodes.push({ id: rid, data: { label: r }, position: { x: 0, y: 0 }, style: { width: nodeWidth, height: nodeHeight } });
+          }
+          const reid = `rel-${id}-${rid}`;
+          if (!edges.find(e => e.id === reid)) {
+            edges.push({ id: reid, source: id, target: rid, animated: true });
+          }
+        }
+      }
+    }
+  }
 
-    return { nodes, edges };
-  }, [roadmap]);
+  addConceptTree(graph.concepts);
+  return { nodes, edges };
+}
+
+export default function RoadmapGraph({ graph, onSelect, direction = 'LR' }: Props) {
+  const { nodes: initNodes, edges: initEdges } = useMemo(() => buildGraph(graph), [graph]);
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
     () => layout(initNodes, initEdges, direction), [initNodes, initEdges, direction]
@@ -82,8 +99,8 @@ export default function RoadmapGraph({ roadmap, onSelect, direction = 'LR' }: Pr
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, n) => {
-          const m = (n.data as any)?.milestone as Milestone | undefined;
-          onSelect?.(m ?? null);
+          const c = (n.data as any)?.concept as Concept | undefined;
+          onSelect?.(c ?? null);
         }}
       >
         <MiniMap pannable zoomable />
