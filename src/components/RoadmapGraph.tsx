@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as React from 'react';
 import { useMemo } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap,
@@ -54,7 +53,7 @@ export default function RoadmapGraph({ roadmap, onSelect, direction = 'LR' }: Pr
 
     // milestones
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    roadmap.milestones.forEach((m, idx) => {
+    roadmap.milestones.forEach((m) => {
       nodes.push({
         id: m.id,
         data: { label: `${m.title}  (~${m.estimated_hours} ч)`, milestone: m },

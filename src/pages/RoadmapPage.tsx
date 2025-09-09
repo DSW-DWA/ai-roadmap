@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useRoadmap } from '../state';
 import { rewriteRoadmap } from '../api';

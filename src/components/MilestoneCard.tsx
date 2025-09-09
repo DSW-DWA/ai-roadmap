@@ -1,4 +1,3 @@
-import * as React from 'react';
 import type { Milestone } from '../types';
 import {
   Accordion, AccordionSummary, AccordionDetails,
