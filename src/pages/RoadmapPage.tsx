@@ -20,8 +20,26 @@ export default function RoadmapPage() {
   const [descDraft, setDescDraft] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [prompt, setPrompt] = useState<string>('');
+  const [centerOnNode, setCenterOnNode] = useState<string | null>(null);
 
   useEffect(() => { if (!graph) nav('/upload'); }, [graph, nav]);
+  
+  // Reset editing state when selected node changes
+  useEffect(() => {
+    if (selected) {
+      setDescDraft(selected.description ?? '');
+      setIsEditing(false);
+    }
+  }, [selected]);
+
+  // Reset centerOnNode after animation completes
+  useEffect(() => {
+    if (centerOnNode) {
+      const timer = setTimeout(() => setCenterOnNode(null), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [centerOnNode]);
+
   if (!graph) return null;
 
   function findConceptByTitle(concepts: Concept[] | null | undefined, title: string): Concept | null {
@@ -31,6 +49,50 @@ export default function RoadmapPage() {
       const nested = findConceptByTitle(c.consist_of, title);
       if (nested) return nested;
     }
+    return null;
+  }
+
+  function findConceptInGraph(title: string): Concept | null {
+    if (!graph) return null;
+    
+    // First try exact match
+    let result = findConceptByTitle(graph.concepts, title);
+    if (result) return result;
+    
+    // Try case-insensitive match
+    result = findConceptByTitle(graph.concepts, title.toLowerCase());
+    if (result) return result;
+    
+    // Try trimming whitespace
+    result = findConceptByTitle(graph.concepts, title.trim());
+    if (result) return result;
+    
+    // Try case-insensitive with trimming
+    result = findConceptByTitle(graph.concepts, title.trim().toLowerCase());
+    if (result) return result;
+    
+    // Try fuzzy matching - find concepts that contain the title
+    const allConcepts: Concept[] = [];
+    function collectAllConcepts(concepts: Concept[] | null | undefined) {
+      if (!concepts) return;
+      concepts.forEach(c => {
+        allConcepts.push(c);
+        collectAllConcepts(c.consist_of);
+      });
+    }
+    collectAllConcepts(graph.concepts);
+    
+    // Find concepts that contain the title (case-insensitive)
+    const normalizedTitle = title.toLowerCase().trim();
+    const matchingConcepts = allConcepts.filter(c => 
+      c.title.toLowerCase().includes(normalizedTitle) || 
+      normalizedTitle.includes(c.title.toLowerCase())
+    );
+    
+    if (matchingConcepts.length > 0) {
+      return matchingConcepts[0]; // Return first match
+    }
+    
     return null;
   }
 
@@ -52,6 +114,20 @@ export default function RoadmapPage() {
     setGraph(next);
     const updated = findConceptByTitle(next.concepts, title);
     setSelected(updated);
+  }
+
+  function handleNodeSelect(concept: Concept | null) {
+    // Save current editing changes before switching
+    if (selected && isEditing && descDraft !== (selected.description ?? '')) {
+      updateConceptDescription(selected.title, descDraft.trim() === '' ? null : descDraft);
+    } else {
+      if (concept) {
+        setSelected(concept);
+      } else {
+        console.warn('handleNodeSelect received null concept');
+        setSelected(null);
+      }
+    }
   }
 
   function startEditing() {
@@ -132,7 +208,35 @@ export default function RoadmapPage() {
                   <Stack spacing={1} sx={{ mb: 2 }}>
                     <Typography variant="subtitle2">Связанные</Typography>
                     <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                      {selected.related.map(r => <Chip key={r} size="small" label={r} />)}
+                      {selected.related.map(r => (
+                        <Chip 
+                          key={r} 
+                          size="small" 
+                          label={r}
+                          clickable
+                          onClick={() => {
+                            const relatedConcept = findConceptInGraph(r);
+                            if (relatedConcept) {
+                              setCenterOnNode(r);
+                              handleNodeSelect(relatedConcept);
+                            } else {
+                              console.warn(`Concept "${r}" not found in graph`);
+                              // Try to find all available concept titles for debugging
+                              const allTitles: string[] = [];
+                              function collectTitles(concepts: Concept[] | null | undefined) {
+                                if (!concepts) return;
+                                concepts.forEach(c => {
+                                  allTitles.push(c.title);
+                                  collectTitles(c.consist_of);
+                                });
+                              }
+                              collectTitles(graph.concepts);
+                              console.log('Available concepts:', allTitles);
+                            }
+                          }}
+                          sx={{ cursor: 'pointer' }}
+                        />
+                      ))}
                     </Stack>
                   </Stack>
                 )}
@@ -200,7 +304,7 @@ export default function RoadmapPage() {
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
         <Box sx={{ flex: 1, minHeight: 0 }}>
-          <RoadmapGraph graph={graph} onSelect={setSelected} direction="LR" />
+          <RoadmapGraph graph={graph} onSelect={handleNodeSelect} direction="LR" centerOnNode={centerOnNode} />
         </Box>
       </Box>
 

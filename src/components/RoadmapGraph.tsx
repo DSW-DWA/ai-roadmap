@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap,
   type Node, type Edge, useNodesState, useEdgesState
 } from 'reactflow';
+import type { ReactFlowInstance } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import type { KnowledgeGraph, Concept } from '../types.ts';
@@ -12,6 +13,7 @@ type Props = {
   graph: KnowledgeGraph;
   onSelect?: (c: Concept | null) => void;
   direction?: 'LR' | 'TB';
+  centerOnNode?: string | null;
 };
 
 const nodeWidth = 260;
@@ -80,7 +82,7 @@ function buildGraph(graph: KnowledgeGraph) {
   return { nodes, edges };
 }
 
-export default function RoadmapGraph({ graph, onSelect, direction = 'LR' }: Props) {
+export default function RoadmapGraph({ graph, onSelect, direction = 'LR', centerOnNode }: Props) {
   const { nodes: initNodes, edges: initEdges } = useMemo(() => buildGraph(graph), [graph]);
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
@@ -89,6 +91,19 @@ export default function RoadmapGraph({ graph, onSelect, direction = 'LR' }: Prop
 
   const [nodes, , onNodesChange] = useNodesState(layoutNodes);
   const [edges, , onEdgesChange] = useEdgesState(layoutEdges);
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+
+  // Center on specific node when centerOnNode changes
+  useEffect(() => {
+    if (centerOnNode && reactFlowInstance.current) {
+      const nodeId = `c-${centerOnNode}`;
+      reactFlowInstance.current.fitView({ 
+        nodes: [{ id: nodeId }], 
+        duration: 800,
+        padding: 0.1 
+      });
+    }
+  }, [centerOnNode]);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -96,6 +111,9 @@ export default function RoadmapGraph({ graph, onSelect, direction = 'LR' }: Prop
         nodes={nodes}
         edges={edges}
         fitView
+        onInit={(instance) => {
+          reactFlowInstance.current = instance;
+        }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, n) => {
