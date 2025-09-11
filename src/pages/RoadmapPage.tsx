@@ -96,6 +96,31 @@ export default function RoadmapPage() {
     return null;
   }
 
+  function findParentConcepts(conceptTitle: string): string[] {
+    if (!graph) return [];
+    
+    const parents: string[] = [];
+    
+    function searchParents(concepts: Concept[] | null | undefined, currentPath: string[] = []) {
+      if (!concepts) return;
+      
+      for (const concept of concepts) {
+        const newPath = [...currentPath, concept.title];
+        
+        // Check if this concept contains our target
+        if (concept.consist_of?.some(c => c.title === conceptTitle)) {
+          parents.push(...newPath);
+        }
+        
+        // Recursively search in nested concepts
+        searchParents(concept.consist_of, newPath);
+      }
+    }
+    
+    searchParents(graph.concepts);
+    return parents;
+  }
+
   function updateConceptDescription(title: string, description: string | null) {
     if (!graph) return;
     function cloneWithUpdate(concepts: Concept[] | null | undefined): Concept[] | null {
@@ -173,9 +198,88 @@ export default function RoadmapPage() {
                 <Typography variant="h5" gutterBottom>{selected.title}</Typography>
                 {!isEditing && (
                   <>
-                    {!!selected.description && (
-                      <Typography variant="body2" sx={{ mb: 1, fontSize: '0.875rem' }}>{selected.description}</Typography>
-                    )}
+                {!!selected.description && (
+                  <Typography variant="body2" sx={{ mb: 1, fontSize: '0.875rem' }}>{selected.description}</Typography>
+                )}
+                
+                {/* Показать иерархическую структуру */}
+                {(() => {
+                  const parentConcepts = findParentConcepts(selected.title);
+                  if (parentConcepts.length > 0) {
+                    return (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Входит в раздел:</Typography>
+                        {parentConcepts.map((parent, index) => (
+                          <Typography 
+                            key={index} 
+                            variant="body2" 
+                            sx={{ 
+                              fontSize: '0.875rem', 
+                              ml: 1, 
+                              cursor: 'pointer',
+                              color: 'primary.main',
+                              '&:hover': { textDecoration: 'underline' }
+                            }}
+                            onClick={() => {
+                              const parentConcept = findConceptInGraph(parent);
+                              if (parentConcept) {
+                                setCenterOnNode(parent);
+                                handleNodeSelect(parentConcept);
+                              } else {
+                                console.warn(`Parent concept "${parent}" not found in graph`);
+                              }
+                            }}
+                          >
+                            • {parent}
+                          </Typography>
+                        ))}
+                      </Box>
+                    );
+                  }
+                  return null;
+                })()}
+                
+                {/* Показать связанные темы */}
+                {!!selected.related?.length && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Связанные темы:</Typography>
+                    {selected.related.map((related, index) => (
+                      <Typography 
+                        key={index} 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.875rem', 
+                          ml: 1, 
+                          cursor: 'pointer',
+                          color: 'primary.main',
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                        onClick={() => {
+                          const relatedConcept = findConceptInGraph(related);
+                          if (relatedConcept) {
+                            setCenterOnNode(related);
+                            handleNodeSelect(relatedConcept);
+                          } else {
+                            console.warn(`Concept "${related}" not found in graph`);
+                            // Try to find all available concept titles for debugging
+                            const allTitles: string[] = [];
+                            function collectTitles(concepts: Concept[] | null | undefined) {
+                              if (!concepts) return;
+                              concepts.forEach(c => {
+                                allTitles.push(c.title);
+                                collectTitles(c.consist_of);
+                              });
+                            }
+                            collectTitles(graph.concepts);
+                            console.log('Available concepts:', allTitles);
+                          }
+                        }}
+                      >
+                        • {related}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
                     <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                       <Button variant="outlined" size="small" onClick={startEditing}>Редактировать</Button>
                       <Button variant="outlined" size="small" onClick={() => setSelected(null)}>Закрыть</Button>
@@ -202,42 +306,6 @@ export default function RoadmapPage() {
                   <Stack spacing={1} sx={{ mb: 1 }}>
                     <Typography variant="subtitle2">Источники:</Typography>
                     <Chip size="small" label={selected.source} />
-                  </Stack>
-                )}
-                {!!selected.related?.length && (
-                  <Stack spacing={1} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2">Связанные</Typography>
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                      {selected.related.map(r => (
-                        <Chip 
-                          key={r} 
-                          size="small" 
-                          label={r}
-                          clickable
-                          onClick={() => {
-                            const relatedConcept = findConceptInGraph(r);
-                            if (relatedConcept) {
-                              setCenterOnNode(r);
-                              handleNodeSelect(relatedConcept);
-                            } else {
-                              console.warn(`Concept "${r}" not found in graph`);
-                              // Try to find all available concept titles for debugging
-                              const allTitles: string[] = [];
-                              function collectTitles(concepts: Concept[] | null | undefined) {
-                                if (!concepts) return;
-                                concepts.forEach(c => {
-                                  allTitles.push(c.title);
-                                  collectTitles(c.consist_of);
-                                });
-                              }
-                              collectTitles(graph.concepts);
-                              console.log('Available concepts:', allTitles);
-                            }
-                          }}
-                          sx={{ cursor: 'pointer' }}
-                        />
-                      ))}
-                    </Stack>
                   </Stack>
                 )}
               </Box>
