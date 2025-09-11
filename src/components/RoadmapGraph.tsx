@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useEffect, useRef } from 'react';
 import ReactFlow, {
-  Background, Controls, MiniMap,
+  Background, Controls, MiniMap, MarkerType,
   type Node, type Edge, useNodesState, useEdgesState
 } from 'reactflow';
 import type { ReactFlowInstance } from 'reactflow';
@@ -59,7 +59,22 @@ function buildGraph(graph: KnowledgeGraph) {
       if (parentId) {
         const eid = `e-${parentId}-${id}`;
         if (!edges.find(e => e.id === eid)) {
-          edges.push({ id: eid, source: parentId, target: id, animated: false });
+          edges.push({ 
+            id: eid, 
+            source: parentId, 
+            target: id, 
+            animated: false,
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 20,
+              height: 20,
+              color: '#b1b1b7',
+            },
+            style: {
+              strokeWidth: 2,
+              stroke: '#b1b1b7',
+            },
+          });
         }
       }
       if (c.consist_of?.length) addConceptTree(c.consist_of, id);
@@ -71,7 +86,17 @@ function buildGraph(graph: KnowledgeGraph) {
           }
           const reid = `rel-${id}-${rid}`;
           if (!edges.find(e => e.id === reid)) {
-            edges.push({ id: reid, source: id, target: rid, animated: true });
+            edges.push({ 
+              id: reid, 
+              source: id, 
+              target: rid, 
+              animated: false,
+              style: {
+                strokeWidth: 1,
+                stroke: '#b1b1b7',
+                strokeDasharray: '5,5',
+              },
+            });
           }
         }
       }
