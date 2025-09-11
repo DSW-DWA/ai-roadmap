@@ -27,7 +27,7 @@ export interface Roadmap {
 }
 
 export interface RewriteRequest {
-  roadmap: Roadmap;
+  graph: KnowledgeGraph;
   prompt: string;
 }
 

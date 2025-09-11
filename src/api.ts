@@ -1,9 +1,9 @@
 import axios from 'axios';
-import type { Roadmap, RewriteRequest, KnowledgeGraph } from './types.ts';
+import type { RewriteRequest, KnowledgeGraph } from './types.ts';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000',
-  timeout: 20000
+  timeout: 0
 });
 
 export async function uploadFiles(files: File[]): Promise<KnowledgeGraph> {
@@ -15,7 +15,7 @@ export async function uploadFiles(files: File[]): Promise<KnowledgeGraph> {
   return data;
 }
 
-export async function rewriteRoadmap(req: RewriteRequest): Promise<Roadmap> {
-  const { data } = await api.post<Roadmap>('/roadmap/rewrite', req);
+export async function rewriteRoadmap(req: RewriteRequest): Promise<KnowledgeGraph> {
+  const { data } = await api.post<KnowledgeGraph>('/roadmap/rewrite', req);
   return data;
 }

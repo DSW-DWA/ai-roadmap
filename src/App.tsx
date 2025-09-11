@@ -14,10 +14,10 @@ export default function App() {
       <AppBar position="fixed">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => nav('/')}>
-            AI Roadmap
+            AI граф понятий
           </Typography>
           <Button color="inherit" component={Link} to="/upload">Загрузка</Button>
-          <Button color="inherit" component={Link} to="/roadmap">Roadmap</Button>
+          <Button color="inherit" component={Link} to="/roadmap">Граф понятий</Button>
         </Toolbar>
       </AppBar>
 
