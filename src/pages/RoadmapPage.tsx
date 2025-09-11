@@ -96,29 +96,27 @@ export default function RoadmapPage() {
     return null;
   }
 
-  function findParentConcepts(conceptTitle: string): string[] {
-    if (!graph) return [];
+  function findParentConcept(conceptTitle: string): string | null {
+    if (!graph) return null;
     
-    const parents: string[] = [];
-    
-    function searchParents(concepts: Concept[] | null | undefined, currentPath: string[] = []) {
-      if (!concepts) return;
+    function searchParent(concepts: Concept[] | null | undefined): string | null {
+      if (!concepts) return null;
       
       for (const concept of concepts) {
-        const newPath = [...currentPath, concept.title];
-        
         // Check if this concept contains our target
         if (concept.consist_of?.some(c => c.title === conceptTitle)) {
-          parents.push(...newPath);
+          return concept.title;
         }
         
         // Recursively search in nested concepts
-        searchParents(concept.consist_of, newPath);
+        const parent = searchParent(concept.consist_of);
+        if (parent) return parent;
       }
+      
+      return null;
     }
     
-    searchParents(graph.concepts);
-    return parents;
+    return searchParent(graph.concepts);
   }
 
   function updateConceptDescription(title: string, description: string | null) {
@@ -204,35 +202,32 @@ export default function RoadmapPage() {
                 
                 {/* Показать иерархическую структуру */}
                 {(() => {
-                  const parentConcepts = findParentConcepts(selected.title);
-                  if (parentConcepts.length > 0) {
+                  const parentConcept = findParentConcept(selected.title);
+                  if (parentConcept) {
                     return (
                       <Box sx={{ mb: 1 }}>
                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Входит в раздел:</Typography>
-                        {parentConcepts.map((parent, index) => (
-                          <Typography 
-                            key={index} 
-                            variant="body2" 
-                            sx={{ 
-                              fontSize: '0.875rem', 
-                              ml: 1, 
-                              cursor: 'pointer',
-                              color: 'primary.main',
-                              '&:hover': { textDecoration: 'underline' }
-                            }}
-                            onClick={() => {
-                              const parentConcept = findConceptInGraph(parent);
-                              if (parentConcept) {
-                                setCenterOnNode(parent);
-                                handleNodeSelect(parentConcept);
-                              } else {
-                                console.warn(`Parent concept "${parent}" not found in graph`);
-                              }
-                            }}
-                          >
-                            • {parent}
-                          </Typography>
-                        ))}
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontSize: '0.875rem', 
+                            ml: 1, 
+                            cursor: 'pointer',
+                            color: 'primary.main',
+                            '&:hover': { textDecoration: 'underline' }
+                          }}
+                          onClick={() => {
+                            const parentConceptObj = findConceptInGraph(parentConcept);
+                            if (parentConceptObj) {
+                              setCenterOnNode(parentConcept);
+                              handleNodeSelect(parentConceptObj);
+                            } else {
+                              console.warn(`Parent concept "${parentConcept}" not found in graph`);
+                            }
+                          }}
+                        >
+                          • {parentConcept}
+                        </Typography>
                       </Box>
                     );
                   }
