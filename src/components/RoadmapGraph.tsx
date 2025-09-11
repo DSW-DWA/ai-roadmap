@@ -39,6 +39,38 @@ function layout(nodes: Node[], edges: Edge[], direction: 'LR'|'TB' = 'LR') {
   return { nodes: laidNodes, edges };
 }
 
+function findConceptInGraph(graph: KnowledgeGraph, title: string): Concept | null {
+  function findConceptByTitle(concepts: Concept[] | null | undefined, title: string): Concept | null {
+    if (!concepts) return null;
+    for (const c of concepts) {
+      if (c.title === title) return c;
+      const nested = findConceptByTitle(c.consist_of, title);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  if (!graph) return null;
+  
+  // First try exact match
+  let result = findConceptByTitle(graph.concepts, title);
+  if (result) return result;
+  
+  // Try case-insensitive match
+  result = findConceptByTitle(graph.concepts, title.toLowerCase());
+  if (result) return result;
+  
+  // Try trimming whitespace
+  result = findConceptByTitle(graph.concepts, title.trim());
+  if (result) return result;
+  
+  // Try case-insensitive with trimming
+  result = findConceptByTitle(graph.concepts, title.trim().toLowerCase());
+  if (result) return result;
+  
+  return null;
+}
+
 function buildGraph(graph: KnowledgeGraph) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -82,7 +114,17 @@ function buildGraph(graph: KnowledgeGraph) {
         for (const r of c.related) {
           const rid = idFor(r);
           if (!nodes.find(n => n.id === rid)) {
-            nodes.push({ id: rid, data: { label: r }, position: { x: 0, y: 0 }, style: { width: nodeWidth, height: nodeHeight } });
+            // Try to find the actual concept for related nodes
+            const relatedConcept = findConceptInGraph(graph, r);
+            nodes.push({ 
+              id: rid, 
+              data: { 
+                label: r, 
+                concept: relatedConcept 
+              }, 
+              position: { x: 0, y: 0 }, 
+              style: { width: nodeWidth, height: nodeHeight } 
+            });
           }
           const reid = `rel-${id}-${rid}`;
           if (!edges.find(e => e.id === reid)) {
@@ -143,6 +185,9 @@ export default function RoadmapGraph({ graph, onSelect, direction = 'LR', center
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, n) => {
           const c = (n.data as any)?.concept as Concept | undefined;
+          if (!c) {
+            console.warn(`Node "${n.data?.label}" clicked but has no concept data:`, n.data);
+          }
           onSelect?.(c ?? null);
         }}
       >
