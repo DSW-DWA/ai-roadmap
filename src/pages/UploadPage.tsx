@@ -25,7 +25,7 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const jsonRef = React.useRef<HTMLInputElement>(null);
-  const { setGraph } = useRoadmap();
+  const { setGraph, setOriginalFiles } = useRoadmap();
   const nav = useNavigate();
 
   function addFiles(list: FileList | null) {
@@ -63,6 +63,7 @@ export default function UploadPage() {
     try {
       const graph = await uploadFiles(files);
       setGraph(graph);
+      setOriginalFiles(files); // Сохраняем исходные файлы
       nav('/roadmap');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -82,6 +83,7 @@ export default function UploadPage() {
         return;
       }
       setGraph(parsed);
+      setOriginalFiles([]); // Очищаем исходные файлы при импорте JSON
       nav('/roadmap');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {

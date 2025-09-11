@@ -13,7 +13,7 @@ import type { Concept } from '../types';
 const leftWidth = '25vw';
 
 export default function RoadmapPage() {
-  const { graph, setGraph } = useRoadmap();
+  const { graph, setGraph, originalFiles } = useRoadmap();
   const nav = useNavigate();
   const [selected, setSelected] = useState<Concept | null>(null);
   const [loading, setLoading] = useState(false);
@@ -342,6 +342,11 @@ export default function RoadmapPage() {
           {/* Секция AI редактора */}
           <Box sx={{ flexShrink: 0 }}>
             <Typography variant="subtitle1" gutterBottom>AI редактор</Typography>
+            {originalFiles.length === 0 && (
+              <Typography variant="body2" color="warning.main" sx={{ mb: 1, fontSize: '0.875rem' }}>
+                ⚠️ Исходные файлы отсутствуют. AI редактор недоступен.
+              </Typography>
+            )}
             <TextField
               label="Промпт"
               multiline
@@ -349,22 +354,46 @@ export default function RoadmapPage() {
               maxRows={3}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              disabled={originalFiles.length === 0}
               sx={{ mb: 1 }}
             />
             <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
               <Button
                 variant="contained"
                 size="small"
-                disabled={loading || !prompt.trim()}
+                disabled={loading || !prompt.trim() || originalFiles.length === 0}
                 onClick={async () => {
                   if (!graph) return;
+                  
+                  // Проверяем, что есть файлы
+                  if (originalFiles.length === 0) {
+                    alert('Нет исходных файлов для переписывания');
+                    return;
+                  }
+                  
                   setLoading(true);
                   try {
-                    const updated = await rewriteRoadmap({ graph, prompt: prompt.trim() });
+                    console.log('Starting rewrite with:', {
+                      filesCount: originalFiles.length,
+                      fileNames: originalFiles.map(f => f.name),
+                      prompt: prompt.trim()
+                    });
+                    
+                    const updated = await rewriteRoadmap({ 
+                      graph, 
+                      prompt: prompt.trim(), 
+                      files: originalFiles 
+                    });
                     setGraph(updated);
+                    setPrompt(''); // Очищаем промпт после успешного переписывания
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   } catch (e: any) {
-                    alert(e?.response?.data?.detail || 'Ошибка переписывания графа');
+                    console.error('Rewrite error:', e);
+                    const errorMessage = e?.response?.data?.detail || 
+                                       e?.response?.data?.message || 
+                                       e?.message || 
+                                       'Ошибка переписывания графа';
+                    alert(`Ошибка: ${errorMessage}`);
                   } finally {
                     setLoading(false);
                   }

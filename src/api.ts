@@ -16,6 +16,31 @@ export async function uploadFiles(files: File[]): Promise<KnowledgeGraph> {
 }
 
 export async function rewriteRoadmap(req: RewriteRequest): Promise<KnowledgeGraph> {
-  const { data } = await api.post<KnowledgeGraph>('/roadmap/rewrite', req);
+  const form = new FormData();
+  
+  // Добавляем все данные в FormData
+  req.files.forEach(f => form.append('files', f));
+  form.append('knowledge_map', JSON.stringify(req.graph));
+  form.append('user_query', req.prompt);
+  
+  // Логируем содержимое для отладки
+  console.log('Sending rewrite request:', {
+    filesCount: req.files.length,
+    graphConceptsCount: req.graph.concepts.length,
+    prompt: req.prompt,
+    graphKeys: Object.keys(req.graph)
+  });
+  
+  // Логируем содержимое FormData
+  console.log('FormData contents:');
+  for (const [key, value] of form.entries()) {
+    console.log(`${key}:`, value);
+  }
+  
+  const { data } = await api.post<KnowledgeGraph>('/roadmap/rewrite', form, {
+    headers: { 
+      'Accept': 'application/json'
+    }
+  });
   return data;
 }

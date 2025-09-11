@@ -29,6 +29,7 @@ export interface Roadmap {
 export interface RewriteRequest {
   graph: KnowledgeGraph;
   prompt: string;
+  files: File[];
 }
 
 // New types for /roadmap/from-files response
