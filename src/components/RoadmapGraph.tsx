@@ -150,15 +150,24 @@ function buildGraph(graph: KnowledgeGraph) {
 }
 
 export default function RoadmapGraph({ graph, onSelect, direction = 'LR', centerOnNode }: Props) {
-  const { nodes: initNodes, edges: initEdges } = useMemo(() => buildGraph(graph), [graph]);
+  const { nodes: initNodes, edges: initEdges } = useMemo(() => {
+    console.log('Building graph with concepts:', graph.concepts.length);
+    return buildGraph(graph);
+  }, [graph]);
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
     () => layout(initNodes, initEdges, direction), [initNodes, initEdges, direction]
   );
 
-  const [nodes, , onNodesChange] = useNodesState(layoutNodes);
-  const [edges, , onEdgesChange] = useEdgesState(layoutEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(layoutEdges);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+
+  // Update nodes and edges when layout changes (e.g., after AI rewrite)
+  useEffect(() => {
+    setNodes(layoutNodes);
+    setEdges(layoutEdges);
+  }, [layoutNodes, layoutEdges, setNodes, setEdges]);
 
   // Center on specific node when centerOnNode changes
   useEffect(() => {
