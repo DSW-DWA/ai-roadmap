@@ -239,6 +239,32 @@ export default function RoadmapPage() {
                   return null;
                 })()}
                 
+                {/* Показать дочерние концепции */}
+                {!!selected.consist_of?.length && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Содержит:</Typography>
+                    {selected.consist_of.map((child, index) => (
+                      <Typography 
+                        key={index} 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.875rem', 
+                          ml: 1, 
+                          cursor: 'pointer',
+                          color: 'primary.main',
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                        onClick={() => {
+                          setCenterOnNode(child.title);
+                          handleNodeSelect(child);
+                        }}
+                      >
+                        • {child.title}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+
                 {/* Показать связанные темы */}
                 {!!selected.related?.length && (
                   <Box sx={{ mb: 1 }}>
